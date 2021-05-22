@@ -1,4 +1,7 @@
+import builtins
 import logging
+import ephem
+import datetime
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
 import settings
@@ -17,13 +20,29 @@ def talk_to_me(update, context):
     print(user_text)
     update.message.reply_text(user_text)
 
+def get_constellation(update, context):
+    planet_list =[]
+    for i in ephem._libastro.builtin_planets():
+        planet_list.append(i[2])
+    user_text = update.message.text
+    planet = user_text.split(' ')[1].title()
+    date_now = datetime.datetime.today()
+    if planet in planet_list:
+        ephem_planet = getattr(ephem, planet)(date_now)
+        constellation = ephem.constellation(ephem_planet)
+        update.message.reply_text(constellation)
+    else:
+        update.message.reply_text(f'Выберите планету из списка: {planet_list}')
+
 def main():
     mybot = Updater(settings.API_KEY, use_context=True, request_kwargs=PROXY)
 
     dp = mybot.dispatcher
 
     dp.add_handler(CommandHandler('start', greet_user))
+    dp.add_handler(CommandHandler('planet', get_constellation))
     dp.add_handler(MessageHandler(Filters.text, talk_to_me))
+    
 
     logging.info('Бот стартовал')
     mybot.start_polling()
